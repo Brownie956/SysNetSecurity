@@ -208,10 +208,14 @@ public class Test2 {
         System.out.println("Checking for unencrypted files");
         checkNoUnencrypted(fileList, files);
 
+        files = getFilesInDir(outputDir);
+
         /*All encrypted files are correctly signed
         * Any encrypted file that does not correspond to the signature is deleted*/
         System.out.println("Checking Signatures");
         checkSignature(files);
+
+        files = getFilesInDir(outputDir);
 
         /*No missing files compared to the original folder
         * Error message listing the missing files is displayed*/
@@ -425,8 +429,8 @@ public class Test2 {
                 try{
                     KeyFactory kf = KeyFactory.getInstance("RSA");
                     //Get public key and signature
-                    File pk = new File(stripExtension(encryptedFile.getName()) + "PK.txt");
-                    File signature = new File(stripExtension(encryptedFile.getName()) + "SIGN.txt");
+                    File pk = new File(outputDir + stripExtension(encryptedFile.getName()) + "PK.txt");
+                    File signature = new File(outputDir + stripExtension(encryptedFile.getName()) + "SIGN.txt");
                     byte[] pkBuffer = getFileBytes(pk);
                     PublicKey publicKey = kf.generatePublic(new X509EncodedKeySpec(pkBuffer));
 
@@ -488,8 +492,7 @@ public class Test2 {
         for(String fileName : fileList){
             String expected = fileName + ".enc";
             //Is there an encrypted version?
-            File tempFile = new File(expected);
-            tempFile.deleteOnExit();
+            File tempFile = new File(outputDir + expected);
             List<File> fileObjectList = Arrays.asList(files);
             if(!fileObjectList.contains(tempFile)){
                 missingFiles.add(fileName);
