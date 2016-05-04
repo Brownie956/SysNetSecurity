@@ -7,43 +7,54 @@ import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.PBEParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
+import java.lang.reflect.Array;
 import java.security.*;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
 
-public class Protect {
+public class ProtectQ2 {
 
-    private HashMap<String, ReadWritePasswords> readWritePwds;
-    private final String outputDir = "Q1/Q1/";
+    private HashMap<String, ArrayList<String>> readPwds;
+    private HashMap<String, ArrayList<String>> writePwds;
+    private HashMap<String, String> rolePwds;
+    private Role currentRole;
+    private final String outputDir = "Q2/";
+    private enum Role {
+        MANAGER, ROOKIE, ANALYST
+    }
 
     public static void main(String[] args){
-        Protect test = new Protect();
+        ProtectQ2 test = new ProtectQ2();
         String op = args[0];
-        test.readWritePwds = test.getPasswordData();
+        test.readPwds = test.getReadPasswordData();
+        test.writePwds = test.getWritePasswordData();
+        test.rolePwds = test.getPasswordData();
         String baseFileName;
 
         if(op.equals("-e")){
             String filename = args[1];
             String password = args[2];
             test.checkFilePassInput(filename, password);
+            test.currentRole = test.getRole(String.valueOf(password.hashCode()));
             File f2Encrypt = new File(filename);
             baseFileName = stripExtension(f2Encrypt.getName());
             //Set security policy
-            System.setSecurityManager(new WriteSecurityManager(baseFileName, String.valueOf(password.hashCode()), test.readWritePwds));
+            System.setSecurityManager(new WriteSecurityManager(baseFileName, String.valueOf(password.hashCode()), test.writePwds));
             //Encrypt
-            test.encrypt(f2Encrypt);
+            test.encrypt(f2Encrypt, password);
         }
         else if(op.equals("-d")){
             String filename = args[1];
             String password = args[2];
             test.checkFilePassInput(filename, password);
+            test.currentRole = test.getRole(String.valueOf(password.hashCode()));
             File f2Decrypt = new File(filename);
             baseFileName = stripExtension(f2Decrypt.getName());
             //Set security policy
-            System.setSecurityManager(new ReadSecurityManager(baseFileName, String.valueOf(password.hashCode()), test.readWritePwds));
+            System.setSecurityManager(new ReadSecurityManager(baseFileName, String.valueOf(password.hashCode()), test.readPwds));
             //Decrypt
-            test.decrypt(f2Decrypt);
+            test.decrypt(f2Decrypt, password);
         }
         else if(op.equals("-c")){
             //Check
@@ -54,9 +65,9 @@ public class Protect {
         }
     }
 
-    private void encrypt(File f2Encrypt){
+    private void encrypt(File f2Encrypt, String password){
         String baseFileName = stripExtension(f2Encrypt.getName());
-        checkIsRegistered(baseFileName, readWritePwds);
+        checkIsRegistered(baseFileName, writePwds);
 
         try{
             //Get file bytes
@@ -64,6 +75,12 @@ public class Protect {
             byte[] inputBuffer = new byte[(int) f2Encrypt.length()];
             inputStream.read(inputBuffer);
             inputStream.close();
+
+            //Get password to encrypt private key with
+            File encryptedRolePwdFile = new File(outputDir + currentRole.toString().toLowerCase() + ".txt");
+            byte[] encryptedRolePwdBuffer = getFileBytes(encryptedRolePwdFile);
+            byte[] decryptedRolePwd = decryptPBE(encryptedRolePwdBuffer, password);
+            String stringRolePwd = new String(decryptedRolePwd, "UTF-8");
 
             //Encrypt the data using AES
             KeyGenerator keyGen = KeyGenerator.getInstance("AES");
@@ -76,8 +93,7 @@ public class Protect {
             byte[] encryptedAESKey = encryptRSA(aeskey.getEncoded(), kp.getPublic());
 
             //Encrypt the RSA private key using PBE
-            String readPassword = readWritePwds.get(baseFileName).getReadPass();
-            byte[] encryptedPrivateKey = encryptPBE(kp.getPrivate().getEncoded(), readPassword);
+            byte[] encryptedPrivateKey = encryptPBE(kp.getPrivate().getEncoded(), stringRolePwd);
 
             //Create signature
             Signature sign = Signature.getInstance("SHA256withRSA");
@@ -128,15 +144,21 @@ public class Protect {
         }
     }
 
-    private void decrypt(File f2Decrypt){
+    private void decrypt(File f2Decrypt, String password){
         String baseFileName = stripExtension(f2Decrypt.getName());
-        checkIsRegistered(baseFileName, readWritePwds);
+        checkIsRegistered(baseFileName, readPwds);
 
         try{
             KeyFactory kf = KeyFactory.getInstance("RSA");
 
             //Get file bytes
             byte[] encryptedFileBuffer = getFileBytes(f2Decrypt);
+
+            //Get password to decrypt private key with
+            File encryptedRolePwdFile = new File(outputDir + currentRole.toString().toLowerCase() + ".txt");
+            byte[] encryptedRolePwdBuffer = getFileBytes(encryptedRolePwdFile);
+            byte[] decryptedRolePwd = decryptPBE(encryptedRolePwdBuffer, password);
+            String stringRolePwd = new String(decryptedRolePwd, "UTF-8");
 
             //Get public key bytes
             File pk = new File(outputDir + baseFileName + "PK.txt");
@@ -169,8 +191,7 @@ public class Protect {
             }
 
             //Decrypt private key
-            String readPassword = readWritePwds.get(baseFileName).getReadPass();
-            byte[] decryptedPrivateKey = decryptPBE(encryptedSKBuffer, readPassword);
+            byte[] decryptedPrivateKey = decryptPBE(encryptedSKBuffer, stringRolePwd);
             PrivateKey privateKey = kf.generatePrivate(new PKCS8EncodedKeySpec(decryptedPrivateKey));
 
             //Decrypt AES key
@@ -525,12 +546,12 @@ public class Protect {
     private void checkFilePassInput(String filename, String password){
         if(filename == null){
             System.out.println("No file name given");
-            Protect.functionUsagePrompt();
+            ProtectQ2.functionUsagePrompt();
             System.exit(1);
         }
         else if(password == null){
             System.out.println("No password given");
-            Protect.functionUsagePrompt();
+            ProtectQ2.functionUsagePrompt();
             System.exit(1);
         }
     }
@@ -542,11 +563,16 @@ public class Protect {
         }
     }
 
-    private void checkIsRegistered(String filename, HashMap<String, ReadWritePasswords> data){
+    private void checkIsRegistered(String filename, HashMap<String, ArrayList<String>> data){
         if(!data.containsKey(filename)){
             System.out.println("File is not registered");
             System.exit(1);
         }
+    }
+
+    private Role getRole(String hashedPassword){
+        String roleString = rolePwds.get(hashedPassword);
+        return Role.valueOf(roleString.toUpperCase());
     }
 
     private static String stripExtension(String filename){
@@ -561,9 +587,9 @@ public class Protect {
     private static class WriteSecurityManager extends SecurityManager {
         String baseFilename;
         String password;
-        HashMap<String, ReadWritePasswords> passwords;
+        HashMap<String, ArrayList<String>> passwords;
 
-        private WriteSecurityManager(String baseFilename, String password, HashMap<String, ReadWritePasswords> passwords){
+        private WriteSecurityManager(String baseFilename, String password, HashMap<String, ArrayList<String>> passwords){
             super();
             this.baseFilename = baseFilename;
             this.password = password;
@@ -571,7 +597,7 @@ public class Protect {
         }
 
         private boolean writeOK(){
-            return passwords.get(baseFilename).getWritePass().equals(password);
+            return passwords.get(baseFilename).contains(password);
         }
 
         @Override
@@ -608,9 +634,9 @@ public class Protect {
     private static class ReadSecurityManager extends SecurityManager {
         String baseFilename;
         String password;
-        HashMap<String, ReadWritePasswords> passwords;
+        HashMap<String, ArrayList<String>> passwords;
 
-        private ReadSecurityManager(String baseFilename, String password, HashMap<String, ReadWritePasswords> passwords){
+        private ReadSecurityManager(String baseFilename, String password, HashMap<String, ArrayList<String>> passwords){
             super();
             this.baseFilename = baseFilename;
             this.password = password;
@@ -618,7 +644,7 @@ public class Protect {
         }
 
         private boolean readOK(){
-            return passwords.get(baseFilename).getReadPass().equals(password);
+            return passwords.get(baseFilename).contains(password);
         }
 
         @Override
@@ -655,12 +681,12 @@ public class Protect {
         }
     }
 
-    private HashMap<String, ReadWritePasswords> getPasswordData(){
-        HashMap<String, ReadWritePasswords> data = new HashMap<String, ReadWritePasswords>();
+    private HashMap<String, ArrayList<String>> getReadPasswordData(){
+        HashMap<String, ArrayList<String>> data = new HashMap<String, ArrayList<String>>();
         try{
-            File passwordList = new File("/home/chris/IdeaProjects/SysNetSecurity/Q1/Q1/passwords_list");
-            System.out.println(passwordList.getAbsolutePath());
+            File passwordList = new File("/home/chris/IdeaProjects/SysNetSecurity/Q2/read_passwords_list");
             if(!passwordList.exists()){
+                System.out.println("Could not find read password file");
                 System.exit(1);
             }
             Scanner reader = new Scanner(passwordList);
@@ -670,30 +696,83 @@ public class Protect {
             while(reader.hasNext()){
                 String passwordLine = reader.nextLine().trim();
                 String[] lineData = passwordLine.split("\t");
-                data.put(lineData[0], new ReadWritePasswords(lineData[1],lineData[2]));
+                String fileName = lineData[0];
+                ArrayList<String> passwords = new ArrayList<String>();
+                //Are there any read passwords?
+                if(lineData.length > 1){
+                    //Get all the read passwords
+                    for(int i = 1; i < lineData.length; i++){
+                        passwords.add(lineData[i]);
+                    }
+                }
+
+                data.put(fileName, passwords);
+            }
+        }
+        catch(FileNotFoundException e){
+            System.out.println("Read password list not found");
+        }
+        return data;
+    }
+
+    private HashMap<String, ArrayList<String>> getWritePasswordData(){
+        HashMap<String, ArrayList<String>> data = new HashMap<String, ArrayList<String>>();
+        try{
+            File passwordList = new File("/home/chris/IdeaProjects/SysNetSecurity/Q2/write_passwords_list");
+            if(!passwordList.exists()){
+                System.out.println("Could not find write password file");
+                System.exit(1);
+            }
+            Scanner reader = new Scanner(passwordList);
+
+            //Trim lines and add to data - Exclude titles
+            reader.nextLine();
+            while(reader.hasNext()){
+                String passwordLine = reader.nextLine().trim();
+                String[] lineData = passwordLine.split("\t");
+                String fileName = lineData[0];
+                ArrayList<String> passwords = new ArrayList<String>();
+                //Are there any write passwords?
+                if(lineData.length > 1){
+                    //Get all the write passwords
+                    for(int i = 1; i < lineData.length; i++){
+                        passwords.add(lineData[i]);
+                    }
+                }
+
+                data.put(fileName, passwords);
+            }
+        }
+        catch(FileNotFoundException e){
+            System.out.println("Write password list not found");
+        }
+        return data;
+    }
+
+    private HashMap<String, String> getPasswordData(){
+        HashMap<String, String> data = new HashMap<String, String>();
+        try{
+            File passwordList = new File("/home/chris/IdeaProjects/SysNetSecurity/Q2/passwords_list");
+            if(!passwordList.exists()){
+                System.out.println("Could not find password file");
+                System.exit(1);
+            }
+            Scanner reader = new Scanner(passwordList);
+
+            //Trim lines and add to data - Exclude titles
+            reader.nextLine();
+            while(reader.hasNext()){
+                String passwordLine = reader.nextLine().trim();
+                String[] lineData = passwordLine.split("\t");
+                String roleName = lineData[0];
+                String hashedPassword = lineData[1];
+
+                data.put(hashedPassword, roleName);
             }
         }
         catch(FileNotFoundException e){
             System.out.println("Password list not found");
         }
         return data;
-    }
-
-    private static class ReadWritePasswords {
-        private String readPass;
-        private String writePass;
-
-        private ReadWritePasswords(String readPass, String writePass){
-            this.readPass = readPass;
-            this.writePass = writePass;
-        }
-
-        private String getReadPass() {
-            return readPass;
-        }
-
-        private String getWritePass() {
-            return writePass;
-        }
     }
 }

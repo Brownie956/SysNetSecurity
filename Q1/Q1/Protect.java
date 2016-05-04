@@ -15,7 +15,7 @@ import java.util.*;
 public class Protect {
 
     private HashMap<String, ReadWritePasswords> readWritePwds;
-    private final String outputDir = "Q1/Q1/";
+    private final String outputDir = "";
 
     public static void main(String[] args){
         Protect test = new Protect();
@@ -658,7 +658,7 @@ public class Protect {
     private HashMap<String, ReadWritePasswords> getPasswordData(){
         HashMap<String, ReadWritePasswords> data = new HashMap<String, ReadWritePasswords>();
         try{
-            File passwordList = new File("/home/chris/IdeaProjects/SysNetSecurity/Q1/Q1/passwords_list");
+            File passwordList = new File("passwords_list");
             System.out.println(passwordList.getAbsolutePath());
             if(!passwordList.exists()){
                 System.exit(1);
