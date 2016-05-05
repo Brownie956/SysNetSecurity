@@ -40,10 +40,38 @@ public class Protect {
             test.checkFilePassInput(filename, password);
             File f2Decrypt = new File(filename);
             baseFileName = stripExtension(f2Decrypt.getName());
-            //Set security policy
-            System.setSecurityManager(new ReadSecurityManager(baseFileName, String.valueOf(password.hashCode()), test.readWritePwds));
-            //Decrypt
-            test.decrypt(f2Decrypt);
+            //Check for one-time pass
+            Scanner reader;
+            String oneTimePass = null;
+            File oneTime = new File(test.outputDir + "one_time_pass");
+            try {
+                reader = new Scanner(oneTime);
+                oneTimePass = reader.nextLine();
+                oneTimePass = oneTimePass.trim();
+            }
+            catch(FileNotFoundException e){
+                System.out.println("One-time password file not found");
+            }
+
+            //Is this a one-time or normal execution?
+            if(String.valueOf(password.hashCode()).equals(oneTimePass)){
+                //One time pass given -> Decrypt -> Revoke permissions
+                test.decrypt(f2Decrypt);
+                //Remove password files
+                System.out.println("Deleting one-time password file");
+                oneTime.delete();
+                System.out.println("Deleting password file");
+                File passwordList = new File(test.outputDir + "passwords_list");
+                passwordList.delete();
+            }
+            else{
+                //Normal execution
+                //Set security policy
+                System.setSecurityManager(new ReadSecurityManager(baseFileName, String.valueOf(password.hashCode()), test.readWritePwds));
+                //Decrypt
+                test.decrypt(f2Decrypt);
+            }
+
         }
         else if(op.equals("-c")){
             //Check
@@ -661,6 +689,8 @@ public class Protect {
             File passwordList = new File(outputDir + "passwords_list");
             System.out.println(passwordList.getAbsolutePath());
             if(!passwordList.exists()){
+                System.out.println("Password file not found.");
+                System.out.println("System may be locked if one-time decryption has been executed");
                 System.exit(1);
             }
             Scanner reader = new Scanner(passwordList);

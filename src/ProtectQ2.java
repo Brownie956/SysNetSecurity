@@ -684,7 +684,7 @@ public class ProtectQ2 {
     private HashMap<String, ArrayList<String>> getReadPasswordData(){
         HashMap<String, ArrayList<String>> data = new HashMap<String, ArrayList<String>>();
         try{
-            File passwordList = new File("/home/chris/IdeaProjects/SysNetSecurity/Q2/read_passwords_list");
+            File passwordList = new File(outputDir + "read_passwords_list");
             if(!passwordList.exists()){
                 System.out.println("Could not find read password file");
                 System.exit(1);
@@ -718,7 +718,7 @@ public class ProtectQ2 {
     private HashMap<String, ArrayList<String>> getWritePasswordData(){
         HashMap<String, ArrayList<String>> data = new HashMap<String, ArrayList<String>>();
         try{
-            File passwordList = new File("/home/chris/IdeaProjects/SysNetSecurity/Q2/write_passwords_list");
+            File passwordList = new File(outputDir + "write_passwords_list");
             if(!passwordList.exists()){
                 System.out.println("Could not find write password file");
                 System.exit(1);
@@ -752,7 +752,7 @@ public class ProtectQ2 {
     private HashMap<String, String> getPasswordData(){
         HashMap<String, String> data = new HashMap<String, String>();
         try{
-            File passwordList = new File("/home/chris/IdeaProjects/SysNetSecurity/Q2/passwords_list");
+            File passwordList = new File(outputDir + "passwords_list");
             if(!passwordList.exists()){
                 System.out.println("Could not find password file");
                 System.exit(1);

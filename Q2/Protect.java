@@ -13,19 +13,19 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.*;
 
-public class ProtectQ2 {
+public class Protect {
 
     private HashMap<String, ArrayList<String>> readPwds;
     private HashMap<String, ArrayList<String>> writePwds;
     private HashMap<String, String> rolePwds;
     private Role currentRole;
-    private final String outputDir = "Q2/";
+    private final String outputDir = "";
     private enum Role {
         MANAGER, ROOKIE, ANALYST
     }
 
     public static void main(String[] args){
-        ProtectQ2 test = new ProtectQ2();
+        Protect test = new Protect();
         String op = args[0];
         test.readPwds = test.getReadPasswordData();
         test.writePwds = test.getWritePasswordData();
@@ -546,12 +546,12 @@ public class ProtectQ2 {
     private void checkFilePassInput(String filename, String password){
         if(filename == null){
             System.out.println("No file name given");
-            ProtectQ2.functionUsagePrompt();
+            Protect.functionUsagePrompt();
             System.exit(1);
         }
         else if(password == null){
             System.out.println("No password given");
-            ProtectQ2.functionUsagePrompt();
+            Protect.functionUsagePrompt();
             System.exit(1);
         }
     }
@@ -684,7 +684,7 @@ public class ProtectQ2 {
     private HashMap<String, ArrayList<String>> getReadPasswordData(){
         HashMap<String, ArrayList<String>> data = new HashMap<String, ArrayList<String>>();
         try{
-            File passwordList = new File("/home/chris/IdeaProjects/SysNetSecurity/Q2/read_passwords_list");
+            File passwordList = new File(outputDir + "read_passwords_list");
             if(!passwordList.exists()){
                 System.out.println("Could not find read password file");
                 System.exit(1);
@@ -718,7 +718,7 @@ public class ProtectQ2 {
     private HashMap<String, ArrayList<String>> getWritePasswordData(){
         HashMap<String, ArrayList<String>> data = new HashMap<String, ArrayList<String>>();
         try{
-            File passwordList = new File("/home/chris/IdeaProjects/SysNetSecurity/Q2/write_passwords_list");
+            File passwordList = new File(outputDir + "write_passwords_list");
             if(!passwordList.exists()){
                 System.out.println("Could not find write password file");
                 System.exit(1);
@@ -752,7 +752,7 @@ public class ProtectQ2 {
     private HashMap<String, String> getPasswordData(){
         HashMap<String, String> data = new HashMap<String, String>();
         try{
-            File passwordList = new File("/home/chris/IdeaProjects/SysNetSecurity/Q2/passwords_list");
+            File passwordList = new File(outputDir + "passwords_list");
             if(!passwordList.exists()){
                 System.out.println("Could not find password file");
                 System.exit(1);
