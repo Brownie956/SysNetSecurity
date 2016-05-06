@@ -26,7 +26,14 @@ public class Protect {
 
     public static void main(String[] args){
         Protect test = new Protect();
-        String op = args[0];
+        String op = "";
+        if(args.length == 0){
+            Protect.functionUsagePrompt();
+            System.exit(1);
+        }
+        else{
+            op = args[0];
+        }
         test.readPwds = test.getReadPasswordData();
         test.writePwds = test.getWritePasswordData();
         test.rolePwds = test.getPasswordData();
@@ -61,7 +68,11 @@ public class Protect {
             test.check();
         }
         else{
-            throw new IllegalArgumentException("need -e, -d or -c");
+            System.out.println("Operation must be one of the following:");
+            System.out.println("-e = encrypt");
+            System.out.println("-d = decrypt");
+            System.out.println("-c = check");
+            System.exit(1);
         }
     }
 

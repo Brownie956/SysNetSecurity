@@ -19,7 +19,14 @@ public class ProtectQ3 {
 
     public static void main(String[] args){
         ProtectQ3 test = new ProtectQ3();
-        String op = args[0];
+        String op = "";
+        if(args.length == 0){
+            ProtectQ3.functionUsagePrompt();
+            System.exit(1);
+        }
+        else{
+            op = args[0];
+        }
         test.readWritePwds = test.getPasswordData();
         String baseFileName;
 
@@ -78,7 +85,11 @@ public class ProtectQ3 {
             test.check();
         }
         else{
-            throw new IllegalArgumentException("need -e, -d or -c");
+            System.out.println("Operation must be one of the following:");
+            System.out.println("-e = encrypt");
+            System.out.println("-d = decrypt");
+            System.out.println("-c = check");
+            System.exit(1);
         }
     }
 
