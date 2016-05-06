@@ -19,7 +19,7 @@ public class Protect {
     private HashMap<String, ArrayList<String>> writePwds;
     private HashMap<String, String> rolePwds;
     private Role currentRole;
-    private final String outputDir = "";
+    private final String outputDir = "./";
     private enum Role {
         MANAGER, ROOKIE, ANALYST
     }

@@ -15,7 +15,7 @@ import java.util.*;
 public class Protect {
 
     private HashMap<String, ReadWritePasswords> readWritePwds;
-    private final String outputDir = "";
+    private final String outputDir = "./";
 
     public static void main(String[] args){
         Protect test = new Protect();
