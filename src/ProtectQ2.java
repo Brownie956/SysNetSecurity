@@ -1,3 +1,6 @@
+/*Author: Chris Brown
+* Date: 06/05/2016
+* Description: Protect program to encrypt files and enforce a role-based access policy*/
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;

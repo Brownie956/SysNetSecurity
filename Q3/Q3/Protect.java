@@ -1,3 +1,7 @@
+/*Author: Chris Brown
+* Date: 06/05/2016
+* Description: Protect program to encrypt files and enforce a read/write access policy
+* Include a one-time password for one-time decryption and to revoke permissions*/
 import javax.crypto.Cipher;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
